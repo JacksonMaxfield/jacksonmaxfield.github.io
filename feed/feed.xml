@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
 	<title>Jackson Maxfield Brown</title>
-	<subtitle>Bits and bobs about me.</subtitle>
+	<subtitle>Updates on what I am working on -- my research, projects, and more.</subtitle>
 	
 	<link href="https://jacksonmaxfield.github.io/feed/feed.xml" rel="self"/>
 	<link href="https://jacksonmaxfield.github.io"/>
-	<updated>2020-09-28T00:00:00-00:00</updated>
+	<updated>2021-06-11T05:11:20.382-00:00</updated>
 	<id>https://jacksonmaxfield.github.io</id>
 	<author>
 		<name>Jackson Maxfield Brown</name>
@@ -13,68 +13,12 @@
 	</author>
 	
 	<entry>
-		<title>AICSImageIO</title>
-		<link href="https://jacksonmaxfield.github.io/posts/aicsimageio/"/>
-		<updated>2020-09-28T00:00:00-00:00</updated>
-		<id>https://jacksonmaxfield.github.io/posts/aicsimageio/</id>
+		<title></title>
+		<link href="https://jacksonmaxfield.github.io/posts/dummy/"/>
+		<updated>2021-06-11T05:11:20.382-00:00</updated>
+		<id>https://jacksonmaxfield.github.io/posts/dummy/</id>
 		<content type="html">
-		  &lt;p&gt;&lt;img src=&quot;https://jacksonmaxfield.github.io/img/aicsimageio/quilt-catalog-cells.png&quot; alt=&quot;Single cell projections&quot;&gt;&lt;br&gt;
-&lt;sub&gt;Single cell projections produced from &lt;a href=&quot;https://github.com/allencellmodeling/actk&quot;&gt;Automated Cell Toolkit&lt;/a&gt;.&lt;/sub&gt;&lt;/p&gt;
-&lt;p&gt;This post will be about &lt;a href=&quot;https://github.com/allencellmodeling/aicsimageio&quot;&gt;AICSImageIO&lt;/a&gt;, the work we have already completed, the things coming in the future, and other comments and tidbits along the way. In some ways, this is a rambling version of the &lt;a href=&quot;https://github.com/allencellmodeling/aicsimageio/pull/150&quot;&gt;&amp;quot;Mission and Roadmap&amp;quot; documents soon to be added to the AICSImageIO repository&lt;/a&gt; so if you prefer to just read those documents, feel free.&lt;/p&gt;
-&lt;h5 id=&quot;in-short&quot;&gt;In Short &lt;a class=&quot;direct-link&quot; href=&quot;#in-short&quot;&gt;#&lt;/a&gt;&lt;/h5&gt;
-&lt;p&gt;AICSImageIO aims to provide a &lt;strong&gt;consistent, intuitive, API for reading in or out-of-memory image pixel data and metadata, regardless of location,&lt;/strong&gt; for the many existing proprietary microscopy file formats, and, an &lt;strong&gt;easy-to-use API for converting from proprietary file formats to an open, common, standard&lt;/strong&gt; -- all using either language agnostic or pure Python tooling.&lt;/p&gt;
-&lt;h5 id=&quot;background&quot;&gt;Background &lt;a class=&quot;direct-link&quot; href=&quot;#background&quot;&gt;#&lt;/a&gt;&lt;/h5&gt;
-&lt;p&gt;When I first started at Allen Cell, I was immediately tossed into reading and writing multi-dimensional volumetric image data -- something I had no prior experience in doing. Image manipulation in programming made &lt;em&gt;decent&lt;/em&gt; sense to me in terms of n-dimensional array manipulation, but, I didn&#39;t have any idea of the current problems in scalable, robust, and unified image reading and writing.&lt;/p&gt;
-&lt;p&gt;Prior to Allen Cell, the largest images I had ever interacted with in-memory in programming were &lt;em&gt;small&lt;/em&gt; -- a couple of MBs perhaps and all either 2D or 2D RGB (3D). What I would soon learn was that images can get &lt;em&gt;large&lt;/em&gt;. Really large. On average, the microscopy images that Allen Cell works with are about 400 MBs in size and I think the most common array shape I interacted with was around (7, 75, 624, 924) -- 7 channel, 75 Z-stack images. These are large images when compared to what most people interact with on a daily basis but these weren&#39;t even close to the upper bound of the sizes of images we could possibly produce, and, most importantly, these images can fit into most workstation&#39;s memory. Notably, there was no time-series data in the above &amp;quot;most common&amp;quot; example, in the time-series case for Allen Cell, our files commonly were much larger, usually somewhere in the multi-GB range -- the largest I have seen was 200GB.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;https://jacksonmaxfield.github.io/img/aicsimageio/n-dim-render.png&quot; alt=&quot;An image of a cell rendered in napari&quot;&gt;&lt;br&gt;
-&lt;sub&gt;A three dimensional (ZYX) image of a cell rendered with &lt;a href=&quot;https://napari.org/&quot;&gt;napari&lt;/a&gt; with structure, membrane, and DNA channels visible.&lt;/sub&gt;&lt;/p&gt;
-&lt;p&gt;Images at Allen also come in a few formats, from proprietary file formats such as &lt;code&gt;CZI&lt;/code&gt; and &lt;code&gt;LIF&lt;/code&gt;, to open standards like &lt;code&gt;OME-TIFF&lt;/code&gt; with each format containing their own metadata schema. This is incredibly important because while the underlying image pixel data is generally all the same structure -- &amp;quot;a bunch of YX planes in some shape or another&amp;quot;, the metadata schemas can vary widely and contains important pieces of information such as the channel names, the pixel size, the acquisition setup, etc.&lt;/p&gt;
-&lt;p&gt;So what do you do when you have a scientist who wants to port some analysis code from using one image dataset to another, but, they have a couple of issues:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;the original dataset they used their analysis code against was written for reading and interacting with the metadata of a different file format&lt;/li&gt;
-&lt;li&gt;the original dataset contained files that were much smaller -- usually this is because they were using a small scale sample&lt;/li&gt;
-&lt;/ul&gt;
-&lt;h5 id=&quot;too-many-formats&quot;&gt;Too Many Formats &lt;a class=&quot;direct-link&quot; href=&quot;#too-many-formats&quot;&gt;#&lt;/a&gt;&lt;/h5&gt;
-&lt;p&gt;Let&#39;s start by addressing how to create a &amp;quot;scalable&amp;quot; image reading library. Generally, when people talk about the &amp;quot;scalability&amp;quot; of something in programming they are referring to how well a program or infrastructure can handle more and more load, users, requests, etc. But, in the case of AICSImageIO, we use this term to mean:&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;How easy is it to add support for reading a new proprietary file format?&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;There are a couple of things to unpack here:&lt;/p&gt;
-&lt;ul&gt;
-&lt;li&gt;How &amp;quot;easy&amp;quot; something is is a bad way to say &amp;quot;how well does the developer specification allow for &#39;my new cool custom image file format&#39;.&amp;quot;&lt;/li&gt;
-&lt;li&gt;Notice, we only mention &amp;quot;reading&amp;quot; a new file format, not writing. We are pretty set on this as we want to &amp;quot;encourage&amp;quot; that the easiest way to share data with others is with a single image writer to common standards.&lt;/li&gt;
-&lt;/ul&gt;
-&lt;p&gt;As previously mentioned, regardless of file format, &lt;em&gt;most&lt;/em&gt; file formats store image pixel data relatively the same -- &amp;quot;a bunch of YX planes in some shape or another,&amp;quot; and generally, when adding support for a new file format to the library we wanted to make that as easy as possible.&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;If you provide this image Reader object with a method to read a buffer and return an n-dimensional array with the dimension short-names, we&#39;re good.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;This is similar to how other libraries have done it as well (i.e. &lt;a href=&quot;https://github.com/imageio/imageio&quot;&gt;imageio&lt;/a&gt;). Where we differ however is in handling of metadata. It is hard to talk about which pieces of metadata are &amp;quot;the most useful&amp;quot; as everyone has different needs, but there are a few standouts: channels names, pixel size, dimension order and names, etc.&lt;/p&gt;
-&lt;p&gt;I &lt;em&gt;personally&lt;/em&gt; think:&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;the pieces of metadata that are most useful to computational scientists are those which enable the scientist to complete their work without ever having to &lt;em&gt;view&lt;/em&gt; the file.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;&lt;sub&gt;A disclaimer, I will always recommend viewing a sample of the images in a dataset regardless however to make sure that your programmatic understanding of the images you are operating on match your biological understanding.&lt;/sub&gt;&lt;/p&gt;
-&lt;p&gt;In this way, we, the developers of AICSImageIO should try to enable access to the pieces of metadata that are most common &lt;em&gt;across&lt;/em&gt; file formats, &lt;em&gt;and&lt;/em&gt;, allow for rapid development without having to constantly open and view different images.&lt;/p&gt;
-&lt;p&gt;So, in adding a file format to the library, &lt;em&gt;sure&lt;/em&gt;, you can just add a Reader that will return the user &amp;quot;just the pixel data&amp;quot; but you should also find a way to read and parse the valuable bits of metadata.&lt;/p&gt;
-&lt;h5 id=&quot;delayed-image-reading&quot;&gt;Delayed Image Reading &lt;a class=&quot;direct-link&quot; href=&quot;#delayed-image-reading&quot;&gt;#&lt;/a&gt;&lt;/h5&gt;
-&lt;p&gt;So great, we can scale and add readers to the library, and we can enforce that those image readers also read and parse the valuable bits of metadata. What happens when we scale to a multi-hundred GB image? How does the Reader interface change?&lt;/p&gt;
-&lt;p&gt;Fortunately for us, there are much smarter people out there that have already worked on &amp;quot;delayed / distributed array handling problems&amp;quot; for much longer than I have and in general, the problem of reading an image into memory is quite similar to creating a delayed array for that same image.&lt;/p&gt;
-&lt;p&gt;To expand our image reading specification, we simply added a requirement to image readers that requires that they must contain both a function to read the image into memory just like before, but also a function to read YX planes on request (or whatever chunk size they want).&lt;/p&gt;
-&lt;p&gt;There has been some difficulty getting these delayed arrays to operate exactly as intended, and largely this has admittedly been my over-promising of their value in all situations, but, this does work well as a solution for expanding the API to have both in-memory and out-of-memory data have the same functional interface.&lt;/p&gt;
-&lt;h5 id=&quot;where-to-go&quot;&gt;Where To Go &lt;a class=&quot;direct-link&quot; href=&quot;#where-to-go&quot;&gt;#&lt;/a&gt;&lt;/h5&gt;
-&lt;p&gt;One of the problems of development on libraries like this that I have found is that once we made AICSImageIO 3.0 stable, we had to split our time between fixing user reported bugs, minor reworks to optimize behavior, and etc, versus simply continuing on with the high level goals. That isn&#39;t to take away from those activities as they are drastically important in shaping future work as well, it is simply that I have this excitement of adding &lt;em&gt;even more&lt;/em&gt; value to the library, to show what all is possible with even more work but keep having to reign that excitement in (just a bit).&lt;/p&gt;
-&lt;p&gt;Again, in my opinion, the high level goal of AICSImageIO is to:&lt;/p&gt;
-&lt;blockquote&gt;
-&lt;p&gt;provide a &lt;strong&gt;consistent, intuitive, API for reading in or out-of-memory image pixel data and metadata, regardless of location,&lt;/strong&gt; for the many existing proprietary microscopy file formats, and, an &lt;strong&gt;easy-to-use API for converting from proprietary file formats to an open, common, standard&lt;/strong&gt; -- all using either language agnostic or pure Python tooling.&lt;/p&gt;
-&lt;/blockquote&gt;
-&lt;p&gt;So we are actively working on adding support for &lt;code&gt;fsspec&lt;/code&gt; (Filesystem Specification), a Python library that allows for path like handling of local or remote file systems.&lt;/p&gt;
-&lt;p&gt;We are cleaning up our API even further to have a standard for function and property naming and convention.&lt;/p&gt;
-&lt;p&gt;We are standardizing our Reader expansion further to allow for even more general, and safe, image reading with better scene management.&lt;/p&gt;
-&lt;p&gt;And the one that gets me most excited is our work on language agnostic metadata conversion. If we want to have a unified API for metadata access and interaction, well, it would be great that if instead of &amp;quot;emulating&amp;quot; the open standard if we just converted straight to the open standard. Many projects have already done parts of this work but are baked into the library itself, in a programming language, and we want to expand on their existing work by making their, and our work, converting between metadata schemas language agnostic so it can be imported and used in any language. (See the &lt;a href=&quot;https://www.openmicroscopy.org/&quot;&gt;OME&lt;/a&gt; and &lt;a href=&quot;https://github.com/ome/bioformats&quot;&gt;bioformats&lt;/a&gt; teams and projects)&lt;/p&gt;
-&lt;p&gt;Lastly, one of the other benefits of writing this library in pure Python is the ability to interact with the other existing Python ecosystem. We were one of the first teams to add an image reading plugin to &lt;a href=&quot;https://napari.org/&quot;&gt;napari&lt;/a&gt;, but, we hope to also make an image writing plugin after finishing our 4.0 series of changes, thus enabling a &lt;strong&gt;single&lt;/strong&gt; library to manage the reading and writing of image data for both computational and non-computational users in pure Python.&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;https://jacksonmaxfield.github.io/img/aicsimageio/napari-example.png&quot; alt=&quot;A full view of the napari viewer of the previous n-dimensional image render&quot;&gt;&lt;br&gt;
-&lt;sub&gt;A full view of the napari viewer rendering a three dimensional (ZYX) image of a cell rendered with &lt;a href=&quot;https://napari.org/&quot;&gt;napari&lt;/a&gt; with structure, membrane, and DNA channels visible made possible by directly reading an image with the &lt;code&gt;napari-aicsimageio&lt;/code&gt; plugin.&lt;/sub&gt;&lt;/p&gt;
-
+		  
 			
 		</content>
 	</entry>
